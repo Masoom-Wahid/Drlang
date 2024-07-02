@@ -3,6 +3,12 @@
 
 #include "common.h"
 
+// reallocated requires pointer which we give NULL to and old_cap which we give 0 to
+// so basically it allocs sizeof(type) * count
+#define ALLOCATE(type,count)\
+    (type*)reallocate(NULL,0,sizeof(type) * (count))
+
+
 #define GROW_CAPACITY(capacity) \
     ((capacity) < 8 ? 8 : (capacity) * 2)
 
@@ -20,5 +26,6 @@
     reallocate(pointer,sizeof(type)*(cap),0)
 
 void* reallocate(void* pointer, size_t oldSize, size_t newSize);
+
 
 #endif

@@ -1,9 +1,12 @@
 #include "common.h"
 #include "vm.h"
 #include "debug.h"
+#include "object.h"
+#include "memory.h"
 #include "compiler.h"
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
 
 
 VM vm;
@@ -15,6 +18,7 @@ static void resetStack(){
 
 static Value peek(int);
 static bool isFalsey(Value);
+static void concatencate();
 
 static void runtimeError(const char* format,...){
     va_list args;
@@ -99,7 +103,21 @@ do { \
                         )
                 );
                 break;
-            case OP_ADD:  BINARY_OP(NUMBER_VAL,+); break;
+            case OP_ADD:  {
+                if(IS_STRING(peek(0))  && IS_STRING(peek(1))){
+                    concatencate();
+                    break;
+                }else if(IS_NUMBER(peek(0)) && IS_NUMBER(peek(1))){
+                    double a = AS_NUMBER(pop());
+                    double b = AS_NUMBER(pop());
+                    push(NUMBER_VAL(a+b));
+                    break;
+                }else{
+                    runtimeError("Invalid datatype for operator +");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                // BINARY_OP(NUMBER_VAL,+); break
+            };
             case OP_SUBTRACT: BINARY_OP(NUMBER_VAL,-); break;
             case OP_MULTIPLY : BINARY_OP(NUMBER_VAL,*); break;
             case OP_DIVIDE: BINARY_OP(NUMBER_VAL,/); break;
@@ -150,24 +168,6 @@ static Value peek(int distance) {
     return vm.stackTop[-1 - distance];
 }
 
-bool valuesEqual(Value a , Value b){
-    if(a.type!=b.type) return false;
-
-    /*
-    the reason memcmp() isnt used is because the struct Value
-    uses 1 bytes for type and 8 for value 
-    so by default C adds padding making it 16 
-    comparing diffent sizes fields isnt the best thing to do 
-    with memcmp()
-    */
-
-    switch(a.type){
-        case VAL_BOOL : return AS_BOOL(a) == AS_BOOL(b);
-        case VAL_NIL  : return true;
-        case VAL_NUMBER: return AS_NUMBER(a) == AS_NUMBER(b);
-        default:return false;
-    }
-}
 
 static bool isFalsey(Value value){
     /*
@@ -175,6 +175,30 @@ static bool isFalsey(Value value){
     behaves like true .
     */
     return IS_NIL(value) || (IS_BOOL(value) && !AS_BOOL(value));
+}
+
+static void concatencate(){
+    ObjString* bstr = AS_STRING(pop());
+    ObjString* astr = AS_STRING(pop());
+
+    int length = astr->length + bstr->length;
+    // printf("length was %d\n",length);
+    char* chars = ALLOCATE(char,length+1);
+
+    // copy astr = from start of char until lenght of astr
+    memcpy(chars,astr->chars,astr->length);
+
+    // copy bstr from where astr finished and then start bstr until end
+    memcpy(chars+astr->length,bstr->chars,bstr->length);
+    
+    
+    chars[length] = '\0';
+
+    // printf("%s\n",chars);
+
+    ObjString* result  = takeString(chars,length);
+
+    push(OBJ_VAL(result));
 }
 
 
