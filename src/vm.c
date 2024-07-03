@@ -8,6 +8,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <math.h>
+#include <stdlib.h>
 
 
 VM vm;
@@ -39,7 +40,10 @@ static InterpretResult run(){
 // read_byte() returns the next byte , which in turn it is where the index is stored so
 // indexing the constants.value gives u operand of the op_constant
 #define READ_CONSTANT() (vm.chunk->constants.values[READ_BYTE()])
-
+// since for until the variable name is put onto hashtable
+// it is in stack we read it from constant buffer and then push
+// it into hashtable giving it a better lifetime
+#define READ_STRING() AS_STRING(READ_CONSTANT())
 /* 
     if both operands which should be at the top of stack 
     smth like this
@@ -76,7 +80,7 @@ do { \
         uint8_t instruction;
         switch(instruction = READ_BYTE()){
             case OP_RETURN:
-                pop();
+                // pop();
                 // printValue(pop());
                 // printf("\n");
                 return INTERPRET_OK;
@@ -153,24 +157,47 @@ do { \
             case OP_REVERSE: {
                 if(IS_STRING(peek(0))){
                     reverse_str();
+                    break;
                 }else if(IS_NUMBER(peek(0))){
                     push(
                         NUMBER_VAL(
                             -AS_NUMBER(pop())
                         )
                     );
+                    break;
                 }
                 else{
                     runtimeError("Invalid Operand for '@' , The operands should be either String or Number");
                     return INTERPRET_RUNTIME_ERROR;
                 }
-            }
+            };
+            case OP_PRINT:
+                printValue(pop());
+                printf("\n");
+                break;
+            case OP_POP: pop(); break;
+            case OP_DEFINE_GLOBAL:
+                ObjString* global_name = READ_STRING();
+                tableSet(&vm.globals,global_name,peek(0));
+                pop();
+                break;
+            
+            case OP_GET_GLOBAL:
+                ObjString* get_name = READ_STRING();
+                Value value;
+                if(!tableGet(&vm.globals,get_name,&value)){
+                    runtimeError("undefined variable '%s' ",get_name->chars);
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+
+                push(value);
+                break;
             // case OP_GREATER:
             //     Value b = 
         }
     }
 
-
+#undef READ_STRING
 #undef BINARY_OP
 #undef READ_CONSTANT
 #undef READ_BYTE
@@ -179,11 +206,13 @@ do { \
 void initVM(){
     resetStack();
     initTable(&vm.strings);
+    initTable(&vm.globals);
     vm.objects = NULL;
 }
 
 void freeVM(){
     freeTable(&vm.strings);
+    freeTable(&vm.globals);
     freeObjects();
 }
 
@@ -212,13 +241,13 @@ static bool isFalsey(Value value){
 }
 
 
+
 static void reverse_str(){
     ObjString* str_obj = AS_STRING(pop());
     int length = str_obj->length;
     char* str = str_obj->chars;
     // allocate the data for the new str
-    char* rev_str = ALLOCATE(char,length+1);
-
+    char* rev_str = ALLOCATE(char,length);
 
     // go backward and reverse the str
     for(int i = 0;i < length;i++){
@@ -227,12 +256,14 @@ static void reverse_str(){
 
     // just add a trailing to make sure
     rev_str[length] = '\0';
-
+    // printf("\t\t\t\t\tstr is : %s\n",str);
+    // printf("\t\t\t\t\treversed_str is : %s\n",rev_str);
 
     // change it into an object
     ObjString* result = takeString(rev_str,length);
     push(OBJ_VAL(result));
 }
+
 static void concatencate(){
     ObjString* bstr = AS_STRING(pop());
     ObjString* astr = AS_STRING(pop());

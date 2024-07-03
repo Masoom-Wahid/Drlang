@@ -21,6 +21,10 @@ typedef enum{
     OP_LESS,
     OP_REVERSE,
     OP_MODULO,
+    OP_PRINT,
+    OP_POP,
+    OP_DEFINE_GLOBAL,
+    OP_GET_GLOBAL,
 } OP_CODE;
 
 typedef struct {

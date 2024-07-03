@@ -47,6 +47,9 @@ static void grouping();
 static void number();
 static void literal();
 static void string();
+static void statement();
+static void declaration();
+static void variable();
 // static ParseRule* getRule(TokenType type);
 
 
@@ -75,7 +78,7 @@ ParseRule rules[] = {
     [TOKEN_GREATER_EQUAL] = {NULL,binary,PREC_COMPARISON},
     [TOKEN_LESS] = {NULL,binary,PREC_COMPARISON},
     [TOKEN_LESS_EQUAL]= {NULL,binary,PREC_COMPARISON},
-    [TOKEN_IDENTIFIER]= {NULL,NULL,PREC_NONE},
+    [TOKEN_IDENTIFIER]= {variable,NULL,PREC_NONE},
     [TOKEN_STRING]= {string,NULL,PREC_NONE},
     [TOKEN_NUMBER]= {number,NULL,PREC_NONE},
     [TOKEN_AND]= {NULL,NULL,PREC_NONE},
@@ -144,6 +147,15 @@ static void consume(TokenType type, const char* msg){
     errorAtCurrent(msg);
 }
 
+static bool check(TokenType type){
+    return type == parser.current.type;
+}
+
+static bool match(TokenType type){
+    if(!check(type)) return false;
+    advance();
+    return true;
+}
 
 
 
@@ -207,9 +219,99 @@ static void parserPrecedence(Precedence precedence){
     }
 }
 
+
+static uint8_t identifierConstant(Token *name){
+    return makeConstant(
+        OBJ_VAL(
+            copyString(
+                name->start,name->length
+            )
+        )
+    );
+}
+
+static void defineVariable(uint8_t global){
+    emit_bytes(OP_DEFINE_GLOBAL,global);
+}
+
+static uint8_t parseVariable(const char* msg){
+    // just eats the ident token and if not gives the error
+    // if it succesfully does the job it will create the variable identifierConstant()
+    consume(TOKEN_IDENTIFIER,msg);
+    return identifierConstant(&parser.previous);
+}
+
 static void expression(){
     parserPrecedence(PREC_ASSIGNMENT);
 }
+
+static void printStatement(){
+    expression();
+    consume(TOKEN_SEMICOLON,"Expect ';' at the end of statement");
+    emit_byte(OP_PRINT);
+
+}
+
+static void synchronize(){
+    parser.panic_mode = false;
+    while(parser.current.type != TOKEN_EOF){
+        if(parser.previous.type == TOKEN_SEMICOLON) return;
+        switch (parser.current.type){
+            case TOKEN_CLASS:
+            case TOKEN_FUN:
+            case TOKEN_VAR:
+            case TOKEN_FOR:
+            case TOKEN_IF:
+            case TOKEN_WHILE:
+            case TOKEN_PRINT:
+            case TOKEN_RETURN:
+                return;
+            default:
+                ;
+        }
+
+        advance();
+    }
+}
+
+static void expressionStatement(){
+    expression();
+    consume(TOKEN_SEMICOLON,"Expect ; after expression");
+    emit_byte(OP_POP);
+}
+
+
+
+static void varDeclaration(){
+    uint8_t global = parseVariable("Expected variable name");
+    if(match(TOKEN_EQUAL)){
+        expression();
+    }else{
+        emit_byte(OP_NIL);
+    }
+
+    consume(TOKEN_SEMICOLON,"Expected ';' at the end of statement");
+    defineVariable(global);
+}
+
+static void statement(){
+    if(match(TOKEN_PRINT)){
+        printStatement();
+    }else{
+        expressionStatement();
+    }
+}
+
+static void declaration(){
+    if(match(TOKEN_VAR)){
+        varDeclaration();
+    }else{
+        statement();
+    }
+    if (parser.panic_mode) synchronize();
+}
+
+
 
 static void literal(){
     switch(parser.previous.type){
@@ -229,6 +331,15 @@ static void string(){
                 parser.previous.length -2
             )
         ));
+}
+
+static void namedVariable(Token name){
+    uint8_t arg = identifierConstant(&name);
+    emit_bytes(OP_GET_GLOBAL,arg);
+}
+
+static void variable(){
+    namedVariable(parser.previous);
 }
 
 static void binary(){
@@ -275,14 +386,18 @@ static void grouping(){
 }
 
 
+
 bool compile(const char* source,Chunk *chunk){
     initScanner(source);
     compilingChunk = chunk;
     parser.had_error = false;
     parser.panic_mode = false;
     advance();
-    expression();
-    consume(TOKEN_EOF,"Expect End Of Expression");
+    while(!match(TOKEN_EOF)){
+        declaration();
+    }
+    // expression();
+    // consume(TOKEN_EOF,"Expect End Of Expression");
     end_compiler();
     return !parser.had_error;
     // int line  = -1;

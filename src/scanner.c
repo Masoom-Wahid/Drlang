@@ -132,22 +132,35 @@ if (scanner.current - scanner.start == start + length &&
     return TOKEN_IDENTIFIER;
 }
 static TokenType identifer_type(){
+    /*
+    print -> parto
+    var -> ban
+    nil -> hich
+    */
     switch (scanner.start[0]) {
+        case 'g' : return checkKeyword(1,5,"halat",TOKEN_FALSE);
         case 'a': return checkKeyword(1, 2, "nd", TOKEN_AND);
         case 'c': return checkKeyword(1, 4, "lass", TOKEN_CLASS);
         case 'e': return checkKeyword(1, 3, "lse", TOKEN_ELSE);
         case 'i': return checkKeyword(1, 1, "f", TOKEN_IF);
-        case 'n': return checkKeyword(1, 2, "il", TOKEN_NIL);
+        case 'h': return checkKeyword(1, 2, "ich", TOKEN_NIL);
         case 'o': return checkKeyword(1, 1, "r", TOKEN_OR);
-        case 'p': return checkKeyword(1, 4, "rint", TOKEN_PRINT);
+        case 'p': return checkKeyword(1, 4, "arto", TOKEN_PRINT);
         case 'r': return checkKeyword(1, 5, "eturn", TOKEN_RETURN);
-        case 's': return checkKeyword(1, 4, "uper", TOKEN_SUPER);
-        case 'v': return checkKeyword(1, 2, "ar", TOKEN_VAR);
+        // sahi and super
+        case 's': 
+        if (scanner.current - scanner.start){
+            switch(scanner.start[1]){
+                case 'u' : return checkKeyword(2, 3, "per", TOKEN_SUPER);
+                case 'a' : return checkKeyword(2,3,"hih",TOKEN_TRUE);
+            }
+        }
+        case 'b': return checkKeyword(1, 3, "aan", TOKEN_VAR);
         case 'w': return checkKeyword(1, 4, "hile", TOKEN_WHILE);
         case 'f':
         if (scanner.current - scanner.start > 1) {
             switch (scanner.start[1]) {
-                case 'a': return checkKeyword(2, 3, "lse", TOKEN_FALSE);
+                // case 'a': return checkKeyword(2, 3, "lse", TOKEN_FALSE);
                 case 'o': return checkKeyword(2, 1, "r", TOKEN_FOR);
                 case 'u': return checkKeyword(2, 1, "n", TOKEN_FUN);
             }
@@ -157,7 +170,7 @@ static TokenType identifer_type(){
             if (scanner.current - scanner.start > 1) {
                 switch (scanner.start[1]) {
                 case 'h': return checkKeyword(2, 2, "is", TOKEN_THIS);
-                case 'r': return checkKeyword(2, 2, "ue", TOKEN_TRUE);
+                // case 'r': return checkKeyword(2, 2, "ue", TOKEN_TRUE);
             }
             break;
         }

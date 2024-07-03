@@ -1,1 +1,4 @@
-1000 % 2 == 0
+// just a simple script working with palindrome
+baan word = "wow";
+baan is_pal = @word == word;
+parto is_pal;

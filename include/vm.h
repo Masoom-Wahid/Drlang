@@ -19,6 +19,9 @@ typedef struct {
     Value *stackTop;
     // for strings and idents , better to keep them in a hashmap for fast lookup
     Table strings;
+    // the diffrence between globals and strings is obviously that globals keep the idenifier
+    // but also they only keep those identifier names not the string themselves
+    Table globals;
     // for heap alloacted objects
     Obj* objects;
 } VM;
