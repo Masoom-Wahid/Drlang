@@ -19,6 +19,7 @@ static void resetStack(){
 static Value peek(int);
 static bool isFalsey(Value);
 static void concatencate();
+static void reverse_str();
 
 static void runtimeError(const char* format,...){
     va_list args;
@@ -134,6 +135,21 @@ do { \
             case OP_GREATER: BINARY_OP(BOOL_VAL,>); break;
             case OP_LESS:   BINARY_OP(BOOL_VAL,<); break;
 
+            case OP_REVERSE: {
+                if(IS_STRING(peek(0))){
+                    reverse_str();
+                }else if(IS_NUMBER(peek(0))){
+                    push(
+                        NUMBER_VAL(
+                            -AS_NUMBER(pop())
+                        )
+                    );
+                }
+                else{
+                    runtimeError("Invalid Operand for '@' , The operands should be either String or Number");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+            }
             // case OP_GREATER:
             //     Value b = 
         }
@@ -177,6 +193,28 @@ static bool isFalsey(Value value){
     return IS_NIL(value) || (IS_BOOL(value) && !AS_BOOL(value));
 }
 
+
+static void reverse_str(){
+    ObjString* str_obj = AS_STRING(pop());
+    int length = str_obj->length;
+    char* str = str_obj->chars;
+    // allocate the data for the new str
+    char* rev_str = ALLOCATE(char,length+1);
+
+
+    // go backward and reverse the str
+    for(int i = 0;i < length;i++){
+        rev_str[i] = str[length-i-1];
+    }
+
+    // just add a trailing to make sure
+    rev_str[length] = '\0';
+
+
+    // change it into an object
+    ObjString* result = takeString(rev_str,length);
+    push(OBJ_VAL(result));
+}
 static void concatencate(){
     ObjString* bstr = AS_STRING(pop());
     ObjString* astr = AS_STRING(pop());

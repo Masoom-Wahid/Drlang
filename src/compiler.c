@@ -55,6 +55,7 @@ Chunk *compilingChunk;
 
 ParseRule rules[] = {
     [TOKEN_LEFT_PAREN] = {grouping, NULL,PREC_NONE},
+    [TOKEN_REVERSE] = {unary,NULL,PREC_TERM},
     [TOKEN_RIGHT_PAREN] = {NULL,NULL,PREC_NONE},
     [TOKEN_LEFT_BRACE]= {NULL,NULL,PREC_NONE},
     [TOKEN_RIGHT_BRACE] = {NULL,NULL,PREC_NONE},
@@ -257,11 +258,11 @@ static void number(){
 
 static void unary(){
     TokenType operatorType = parser.previous.type;
-
     parserPrecedence(PREC_UNARY);
     switch(operatorType){
         case TOKEN_MINUS : emit_byte(OP_NEGATE); break;
         case TOKEN_BANG : emit_byte(OP_NOT); break;
+        case TOKEN_REVERSE: emit_byte(OP_REVERSE); break;
         default: return;
     }
 }
