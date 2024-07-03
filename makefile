@@ -14,10 +14,10 @@ SRCDIR = src
 INCDIR = include
 
 # Source files
-SRCS = $(SRCDIR)/main.c $(SRCDIR)/chunk.c $(SRCDIR)/memory.c $(SRCDIR)/debug.c $(SRCDIR)/value.c $(SRCDIR)/vm.c $(SRCDIR)/compiler.c $(SRCDIR)/scanner.c $(SRCDIR)/object.c
+SRCS = $(SRCDIR)/main.c $(SRCDIR)/chunk.c $(SRCDIR)/memory.c $(SRCDIR)/debug.c $(SRCDIR)/value.c $(SRCDIR)/vm.c $(SRCDIR)/compiler.c $(SRCDIR)/scanner.c $(SRCDIR)/object.c $(SRCDIR)/table.c
 
 # Header files
-HEADERS = $(INCDIR)/chunk.h $(INCDIR)/common.h $(INCDIR)/memory.h $(INCDIR)/debug.h $(INCDIR)/value.h $(INCDIR)/vm.h $(SRCDIR)/compiler.h $(INCDIR)/scanner.h $(INCDIR)/object.h
+HEADERS = $(INCDIR)/chunk.h $(INCDIR)/common.h $(INCDIR)/memory.h $(INCDIR)/debug.h $(INCDIR)/value.h $(INCDIR)/vm.h $(SRCDIR)/compiler.h $(INCDIR)/scanner.h $(INCDIR)/object.h $(INCDIR)/table.h
 
 # Object files
 OBJS = $(SRCS:.c=.o)

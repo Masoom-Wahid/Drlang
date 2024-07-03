@@ -4,6 +4,7 @@
 
 #include "memory.h"
 #include "object.h"
+#include "table.h"
 #include "value.h"
 #include "vm.h"
 
@@ -22,12 +23,24 @@ static Obj* allocateObj(size_t size,ObjType type){
 }
 
 
-static ObjString* allocateString(char* chars,int length){
+static ObjString* allocateString(char* chars,int length,uint32_t hash){
     // changed that array of chars into an ObjString*
     ObjString* string = ALLOCATE_OBJ(ObjString,OBJ_STRING);
     string->length = length;
     string->chars = chars;
+    string->hash = hash;
+    tableSet(&vm.strings,string,NIL_VAL);
     return string;
+}
+
+static uint32_t hashString(const char* key,int length){
+    // “FNV-1a” hashing algorithm
+    uint32_t hash = 2166136261u;
+    for(int i = 0;i < length;i++){
+        hash ^= key[i];
+        hash *= 16777619;
+    }
+    return hash;
 }
 
 
@@ -42,6 +55,12 @@ void printObject(Value value){
 
 
 ObjString* copyString(const char* chars, int length){
+    // hash the string for the hashtable
+    uint32_t hash = hashString(chars,length);
+    // if the curr string already exists then return that instead of again copying it
+    ObjString* interned = tableFindString(&vm.strings,chars,length,hash);
+    if(interned != NULL) return interned;
+
     // alloacte for the chars so the chars are on heap
     char *heapchars = ALLOCATE(char,length+1);
     // after alloacting copy them
@@ -49,10 +68,22 @@ ObjString* copyString(const char* chars, int length){
     // place a terminator at the end of the string
     heapchars[length] = '\0';
     // turn the heap allocated string into and ObjString*
-    return allocateString(heapchars,length);
+    return allocateString(heapchars,length,hash);
 }
 
 
 ObjString* takeString(char* chars,int length){
-    return allocateString(chars,length);
+    uint32_t hash = hashString(chars,length);
+    /*
+    if the curr string exists than the curr pointer is useless
+    instead we free the curr pointer and give the one we have in 
+    our hash table
+    */
+    ObjString* interned = tableFindString(&vm.strings,chars,length,hash);
+    if(interned != NULL) {
+        FREE_ARRAY(char,chars,length+1);
+        return interned;
+    };
+    // else we alloacte and give the ownership
+    return allocateString(chars,length,hash);
 }
