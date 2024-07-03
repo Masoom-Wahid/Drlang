@@ -64,6 +64,8 @@ int disassembleInstruction(Chunk* chunk,int offset){
             return simpleInstruction("OP_EQUAL",offset);
         case OP_REVERSE:
             return simpleInstruction("OP_REVRSE",offset);
+        case OP_MODULO:
+            return simpleInstruction("OP_MODULO",offset);
         default:
             printf("Unknown opcode %d\n",instruction);
             return offset+1;

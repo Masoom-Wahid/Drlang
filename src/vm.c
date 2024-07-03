@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
+#include <math.h>
 
 
 VM vm;
@@ -121,6 +122,20 @@ do { \
             };
             case OP_SUBTRACT: BINARY_OP(NUMBER_VAL,-); break;
             case OP_MULTIPLY : BINARY_OP(NUMBER_VAL,*); break;
+            case OP_MODULO : {
+                if (!IS_NUMBER(peek(0))  && IS_NUMBER(peek(1))){
+                    runtimeError("Expected both operands to be number");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+
+                double b = AS_NUMBER(pop());
+                double a = AS_NUMBER(pop());
+                double result = fmod(a,b);
+                push(
+                    NUMBER_VAL(result)
+                );
+                break;
+            };
             case OP_DIVIDE: BINARY_OP(NUMBER_VAL,/); break;
             case OP_TRUE: push(BOOL_VAL(true)); break;
             case OP_FALSE: push(BOOL_VAL(false)); break;
@@ -163,10 +178,11 @@ do { \
 
 void initVM(){
     resetStack();
+    vm.objects = NULL;
 }
 
 void freeVM(){
-
+    freeObjects();
 }
 
 

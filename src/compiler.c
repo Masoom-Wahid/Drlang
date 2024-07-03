@@ -65,6 +65,7 @@ ParseRule rules[] = {
     [TOKEN_PLUS] = {NULL,binary, PREC_TERM},
     [TOKEN_SEMICOLON] = {NULL,NULL,PREC_NONE},
     [TOKEN_SLASH] = {NULL,binary, PREC_FACTOR},
+    [TOKEN_MODULO] = {NULL,binary,PREC_FACTOR},
     [TOKEN_STAR] = {NULL,binary, PREC_FACTOR},
     [TOKEN_BANG] = {unary,NULL,PREC_NONE},
     [TOKEN_BANG_EQUAL]= {NULL,binary,PREC_EQUALITY},
@@ -236,6 +237,7 @@ static void binary(){
     parserPrecedence((Precedence)(rule->precedence + 1));
     switch(operatorType){
         // arithmethic tokens
+        case TOKEN_MODULO:          emit_byte(OP_MODULO); break;
         case TOKEN_PLUS:            emit_byte(OP_ADD); break;
         case TOKEN_MINUS:           emit_byte(OP_SUBTRACT); break;
         case TOKEN_STAR:            emit_byte(OP_MULTIPLY); break;

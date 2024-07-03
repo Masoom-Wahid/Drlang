@@ -20,6 +20,7 @@ typedef enum{
     OP_GREATER,
     OP_LESS,
     OP_REVERSE,
+    OP_MODULO,
 } OP_CODE;
 
 typedef struct {

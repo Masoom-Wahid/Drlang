@@ -4,6 +4,8 @@ CC = gcc
 # Compiler flags
 CFLAGS = -Wall -Wextra -std=c11 -Iinclude
 
+LDFLAGS = -lm
+
 # Target executable
 TARGET = drlang 
 
@@ -15,7 +17,7 @@ INCDIR = include
 SRCS = $(SRCDIR)/main.c $(SRCDIR)/chunk.c $(SRCDIR)/memory.c $(SRCDIR)/debug.c $(SRCDIR)/value.c $(SRCDIR)/vm.c $(SRCDIR)/compiler.c $(SRCDIR)/scanner.c $(SRCDIR)/object.c
 
 # Header files
-HEADERS = $(INCDIR)/chunk.h $(INCDIR)/common.h $(INCDIR)/memory.h $(SRCDIR)/debug.h $(SRCDIR)/value.h $(SRCDIR)/vm.h $(SRCDIR)/compiler.h $(SRCDIR)/scanner.h $(SRCDIR)/object.h
+HEADERS = $(INCDIR)/chunk.h $(INCDIR)/common.h $(INCDIR)/memory.h $(INCDIR)/debug.h $(INCDIR)/value.h $(INCDIR)/vm.h $(SRCDIR)/compiler.h $(INCDIR)/scanner.h $(INCDIR)/object.h
 
 # Object files
 OBJS = $(SRCS:.c=.o)
@@ -25,7 +27,7 @@ all: $(TARGET)
 
 # Link object files to create the final executable
 $(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 # Compile each source file into an object file
 $(SRCDIR)/%.o: $(SRCDIR)/%.c $(HEADERS)
