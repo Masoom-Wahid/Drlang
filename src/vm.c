@@ -192,8 +192,34 @@ do { \
 
                 push(value);
                 break;
-            // case OP_GREATER:
-            //     Value b = 
+            case OP_SET_GLOBAL:
+                ObjString* name = READ_STRING();
+                /* 
+                   tableSet will set the variable if it does not exist
+                   so naturally implicit variable declaration is not accepted
+                   say for ex:
+                   baan x basha 10;
+                   x basha 20;
+                   y basha 30;
+                   here y is not declared but we are reassigning it 
+                   so if tableSet returns true it means that the variable did not exist
+                   before , hence we delete it and return a rumtime error 
+                   since the user is calling an undefined variable
+                */
+                if(tableSet(&vm.globals,name,peek(0))){
+                    tableDelete(&vm.globals,name);
+                    runtimeError("undefined variable '%s' .",name->chars);
+                    return INTERPRET_RUNTIME_ERROR;
+                } 
+                break;
+            case OP_GET_LOCAL:
+                uint8_t get_slot = READ_BYTE();
+                push(vm.stack[get_slot]);
+                break;
+            case OP_SET_LOCAL:
+                uint8_t set_slot = READ_BYTE();
+                vm.stack[set_slot] = peek(0);
+                break;
         }
     }
 
