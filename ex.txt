@@ -1,3 +1,5 @@
-baan x basha "hello world";
-parto x;
-{baan y basha 20};
+// comment
+mthwl name hast "mariam";
+parto "Name ast " jama name;
+aga(name basha "moqadas") parto "salam";
+aga_ni parto "gom ko khoda";

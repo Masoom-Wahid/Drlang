@@ -44,6 +44,8 @@ static InterpretResult run(){
 // it is in stack we read it from constant buffer and then push
 // it into hashtable giving it a better lifetime
 #define READ_STRING() AS_STRING(READ_CONSTANT())
+#define READ_SHORT() \
+    (vm.ip += 2, (uint16_t)((vm.ip[-2] << 8) | vm.ip[-1]))
 /* 
     if both operands which should be at the top of stack 
     smth like this
@@ -220,9 +222,36 @@ do { \
                 uint8_t set_slot = READ_BYTE();
                 vm.stack[set_slot] = peek(0);
                 break;
+            /*
+                READ_SHORT() reads both bytes and finds the how much bytes we should jump
+                since the value is at the top of stack we check for if it is false 
+                if it is we jump 
+                so basically
+                aga(10 masawi 10) parto "hello world";
+                since 10 masawi 10 evaluates to true 
+                the top of stack will be true so it will not jump
+                but if aga(10 nist 10) parto "hello world";
+                then the top of stack if false
+                it will jump by the offset -> it will add the ip(instruction pointer)
+                to the place where after the if condition statement 
+            */
+            case OP_JUMP_IF_FALSE:
+                uint16_t if_false_offset = READ_SHORT();
+                if(isFalsey(peek(0))) vm.ip += if_false_offset;
+                break;
+
+            /*
+                OP_JUMP dosent care about the condition
+                it jumps to where we say
+            */
+            case OP_JUMP:
+                uint16_t offset = READ_SHORT();
+                vm.ip += offset;
+                break;
         }
     }
 
+#undef READ_SHORT
 #undef READ_STRING
 #undef BINARY_OP
 #undef READ_CONSTANT

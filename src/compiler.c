@@ -63,6 +63,8 @@ static void string(bool can_assign);
 static void statement();
 static void declaration();
 static void variable(bool can_assign);
+static void and_(bool can_assign);
+static void or_(bool can_assign);
 // static ParseRule* getRule(TokenType type);
 
 
@@ -96,7 +98,7 @@ ParseRule rules[] = {
     [TOKEN_IDENTIFIER]= {variable,NULL,PREC_NONE},
     [TOKEN_STRING]= {string,NULL,PREC_NONE},
     [TOKEN_NUMBER]= {number,NULL,PREC_NONE},
-    [TOKEN_AND]= {NULL,NULL,PREC_NONE},
+    [TOKEN_AND]= {NULL,and_,PREC_AND},
     [TOKEN_CLASS]= {NULL,NULL,PREC_NONE},
     [TOKEN_ELSE]= {NULL,NULL,PREC_NONE},
     [TOKEN_FALSE]= {literal,NULL,PREC_NONE},
@@ -104,7 +106,7 @@ ParseRule rules[] = {
     [TOKEN_FUN]= {NULL,NULL,PREC_NONE},
     [TOKEN_IF]= {NULL,NULL,PREC_NONE},
     [TOKEN_NIL]= {literal,NULL,PREC_NONE},
-    [TOKEN_OR]= {NULL,NULL,PREC_NONE},
+    [TOKEN_OR]= {NULL,or_,PREC_OR},
     [TOKEN_PRINT]= {NULL,NULL,PREC_NONE},
     [TOKEN_RETURN]= {NULL,NULL,PREC_NONE},
     [TOKEN_SUPER]= {NULL,NULL,PREC_NONE},
@@ -187,6 +189,18 @@ static void emit_bytes(uint8_t byte1, uint8_t byte2) {
     emit_byte(byte2);
 }
 
+static int emit_jump(uint8_t instruction){
+    // emity 2 instruction and 2 placeholder
+    // each place holder has the value of 255 sine 8 bytes
+    // but combined we 2**16 bytes it will be 65000 bytes of operands
+    // for the if clause
+    emit_byte(instruction);
+    emit_byte(0xff);
+    emit_byte(0xff);
+    // return the chunk of op
+    return currentChunk()->count - 2;
+}
+
 
 
 static void emit_return(){
@@ -228,6 +242,17 @@ static uint8_t makeConstant(Value value){
 
 static void emitConstant(Value value){
     emit_bytes(OP_CONSTANT,makeConstant(value));
+}
+
+static void patchJump(int offset){
+    int jump  = currentChunk()->count - offset - 2;
+    if(jump > UINT16_MAX){
+        errorAtCurrent("Too much code for the if clause");
+    }
+
+    // update the offsets with and replace the placeholder
+    currentChunk()->code[offset] = (jump>>8) & 0xff;
+    currentChunk()->code[offset+1] = jump&0xff;
 }
 
 static void initCompiler(Compiler* compiler){
@@ -359,6 +384,55 @@ static void defineVariable(uint8_t global){
     emit_bytes(OP_DEFINE_GLOBAL,global);
 }
 
+static void and_(bool can_assign){
+    /*
+        although the dont look the same but impl of 'if' is near to 'and' and 'or'
+
+        left hand expression
+        OP_JUMP_IF_FALSE ---------------
+        OP_POP                         |
+        right hand expression          |
+        continue <---------------------|
+
+        so basically since in 'and' statements both of sides must be true
+        it will take an early exit if left hand is not true
+        if it true it will pop result of left hand since it is irrelavnt and now the 
+        all that matters is the right side
+    */
+
+    int endJump = emit_jump(OP_JUMP_IF_FALSE);
+    emit_byte(OP_POP);
+    parserPrecedence(PREC_AND);
+    patchJump(endJump);
+}
+
+static void or_(bool can_assign){
+    /*
+    
+            left operand expression
+    
+            OP_JUMP_IF_FALSE ----------
+    ------- OP_JUMP                   |
+    |       OP_POP <------------------|
+    |       right hand expresion
+    |------>continue
+
+    so basically unlike the early return of and 
+    if the left is false we have to check the right hence the OP_JUMP_IF_FALSE
+    if it wasnt false then OP_JUMP does the job
+    otherwise we go through right hand expression after popping the result of left hand expression
+    
+    */
+    int elseJump = emit_jump(OP_JUMP_IF_FALSE);
+    int endJump = emit_jump(OP_JUMP);
+
+    patchJump(elseJump);
+    emit_byte(OP_POP);
+
+    parserPrecedence(PREC_OR);
+    patchJump(endJump);
+}
+
 static uint8_t parseVariable(const char* msg){
     // just eats the ident token and if not gives the error
     // if it succesfully does the job it will create the variable identifierConstant()
@@ -375,7 +449,8 @@ static void expression(){
 }
 
 static void block(){
-    while(!check(TOKEN_RIGHT_BRACE) && check(TOKEN_EOF)){
+    //412
+    while(!check(TOKEN_RIGHT_BRACE) && !check(TOKEN_EOF)){
         declaration();
     }
     consume(TOKEN_RIGHT_BRACE,"expected '}' at the end of block .");
@@ -430,9 +505,50 @@ static void varDeclaration(){
     defineVariable(global);
 }
 
+static void ifStatement(){
+    /*
+        when matching an if statement
+        we want the expression value at the top of the stack
+        if it is true then we want the code to run else we want to jump
+
+        smth like this
+
+        ---     condition
+        ->      OP_JUMP_IF_FALSE ---------------------------------------------------------------|
+        ->      then burch statement(truthy statment)                                           |
+        -> ---- OP_JUMP(this is because if the truthy value runs we dont want else to run)      |
+        -> |    else brunch statemetn <---------------------------------------------------------|
+        -> | -> continue
+    */
+    consume(TOKEN_LEFT_PAREN,"Expected '(' after if condition");
+    // compile the instruction so that when running it with vm
+    // the result of expression is at the top of stack
+    expression();
+    
+    consume(TOKEN_RIGHT_PAREN,"Expected ')' after condition");
+
+    // get the current offset
+    // and push a OP_JUMP_IF_FALSE
+    int thenJump = emit_jump(OP_JUMP_IF_FALSE);
+    emit_byte(OP_POP);
+    // compile the statement
+    statement();
+
+    int elseJump = emit_jump(OP_JUMP);
+    // jump to the new offset if the condition is false
+    patchJump(thenJump);
+    emit_byte(OP_POP);
+
+    if(match(TOKEN_ELSE)) statement();
+    patchJump(elseJump);
+}
+
+
 static void statement(){
     if(match(TOKEN_PRINT)){
         printStatement();
+    }else if(match(TOKEN_IF)){
+        ifStatement();
     }else{
         expressionStatement();
     }
