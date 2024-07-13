@@ -2,7 +2,8 @@
 CC = gcc
 
 # Compiler flags
-CFLAGS = -Wall -Wextra -std=c11 -Iinclude
+#CFLAGS = -Wall -Wextra -std=c11 -Iinclude
+CFLAGS = -Wall -std=c11 -Iinclude
 
 LDFLAGS = -lm
 

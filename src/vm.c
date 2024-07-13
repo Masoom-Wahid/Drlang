@@ -248,6 +248,15 @@ do { \
                 uint16_t offset = READ_SHORT();
                 vm.ip += offset;
                 break;
+            
+            /*
+                it is completley opposite of OP_JUMP
+                it jumps back by the given offset
+            */
+            case OP_LOOP:
+                uint16_t loop_offset = READ_SHORT();
+                vm.ip -=  loop_offset;
+                break;
         }
     }
 

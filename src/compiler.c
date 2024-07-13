@@ -65,6 +65,7 @@ static void declaration();
 static void variable(bool can_assign);
 static void and_(bool can_assign);
 static void or_(bool can_assign);
+static void varDeclaration();
 // static ParseRule* getRule(TokenType type);
 
 
@@ -187,6 +188,15 @@ static void emit_byte(uint8_t byte){
 static void emit_bytes(uint8_t byte1, uint8_t byte2) {
     emit_byte(byte1);
     emit_byte(byte2);
+}
+
+static void emit_loop(int loopStart){
+    emit_byte(OP_LOOP);
+
+    int offset = currentChunk()->count - loopStart + 2;
+    if(offset>UINT16_MAX) errorAtCurrent("Loop body too large");
+    emit_byte((offset>>8) & 0xff);
+    emit_byte(offset & 0xff);
 }
 
 static int emit_jump(uint8_t instruction){
@@ -449,7 +459,6 @@ static void expression(){
 }
 
 static void block(){
-    //412
     while(!check(TOKEN_RIGHT_BRACE) && !check(TOKEN_EOF)){
         declaration();
     }
@@ -461,6 +470,45 @@ static void printStatement(){
     consume(TOKEN_SEMICOLON,"Expect ';' at the end of statement");
     emit_byte(OP_PRINT);
 
+}
+
+static void whileStatement(){
+
+    /*
+
+            while loop basically works like if statement expect we save the first pointer too
+            and so if the statement is true we use that and jump
+
+            condition
+    ------- OP_JUMP_IF_FALSE <----|
+    |       OP_POP                |
+    |       body statement        |
+    |       OP_LOOP ---------------
+    |-----> OP_POP
+    */
+
+
+    int loopStart = currentChunk()->count;
+    consume(TOKEN_LEFT_PAREN,"Expected '(' after 'ta' ");
+    expression();
+    consume(TOKEN_RIGHT_PAREN,"Expectecd ')' after expression ");
+
+    // jump if the condition is false
+    int exitJump = emit_jump(OP_JUMP_IF_FALSE);
+    // if it isnt false then the top of stack is still the result of 
+    // expression so clean that up
+    emit_byte(OP_POP);
+
+    // get the statement
+    statement();
+
+    // put a loop with the loop start as the start point
+    emit_loop(loopStart);
+
+    // jump to here if the while loop is false
+    patchJump(exitJump);
+    // clean the top of stack before continuing
+    emit_byte(OP_POP);
 }
 
 static void synchronize(){
@@ -489,6 +537,53 @@ static void expressionStatement(){
     expression();
     consume(TOKEN_SEMICOLON,"Expect ; after expression");
     emit_byte(OP_POP);
+}
+
+static void forStatement(){
+    beginScope();
+    consume(TOKEN_LEFT_PAREN,"Expected '(' after 'tawakht_ki' ");
+    if(match(TOKEN_SEMICOLON)){
+        // no initializer
+    }else if(match(TOKEN_VAR)){
+        varDeclaration();
+    }else{
+        expressionStatement();
+    }
+
+    int loopStart = currentChunk()->count;
+
+    int exitJump = -1;
+
+    if(!match(TOKEN_SEMICOLON)){
+        expression();
+        consume(TOKEN_SEMICOLON,"Expected ';' after loop condition");
+        exitJump = emit_jump(OP_JUMP_IF_FALSE);
+        emit_byte(OP_POP);
+    }
+
+    // consume(TOKEN_RIGHT_PAREN,"Expected ')' after 'tawakht_ki' clause ");
+    if(!match(TOKEN_RIGHT_PAREN)){
+        int bodyJump = emit_jump(OP_JUMP);
+        int incrementStart = currentChunk()->count;
+        expression();
+        emit_byte(OP_POP);
+
+        consume(TOKEN_RIGHT_PAREN,"Expected ')' after 'ta' clause");
+        emit_loop(loopStart);
+        loopStart = incrementStart;
+        patchJump(bodyJump);
+    }
+
+
+    statement();
+
+    emit_loop(loopStart);
+
+    if(exitJump!= -1){
+        patchJump(exitJump);
+        emit_byte(OP_POP);
+    }
+    endScope();
 }
 
 
@@ -549,6 +644,14 @@ static void statement(){
         printStatement();
     }else if(match(TOKEN_IF)){
         ifStatement();
+    }else if(match(TOKEN_FOR)){
+        forStatement();
+    }else if(match(TOKEN_WHILE)){
+        whileStatement();
+    }else if(match(TOKEN_LEFT_BRACE)){
+        beginScope();
+        block();
+        endScope();
     }else{
         expressionStatement();
     }
@@ -660,6 +763,7 @@ static void grouping(bool can_assign){
 
 bool compile(const char* source,Chunk *chunk){
     initScanner(source);
+    // /*
     Compiler compiler;
     initCompiler(&compiler);
     compilingChunk = chunk;
@@ -668,22 +772,24 @@ bool compile(const char* source,Chunk *chunk){
     advance();
     while(!match(TOKEN_EOF)){
         declaration();
-    }
-    // expression();
-    // consume(TOKEN_EOF,"Expect End Of Expression");
+    } 
     end_compiler();
     return !parser.had_error;
-    // int line  = -1;
-    // for(;;){
-    //     Token token = scanToken();
-    //     if(token.line != line){
-    //         printf("\nline: [%4d]\n",token.line);
-    //         line = token.line;
-    //     }// }else{
-    //     //     printf("    | ");
-    //     // }
-    //     // printf("line is : [%d]",token.line);
-    //     printf("type:[%2d] token: => %.*s\n",token.type,token.length,token.start);
-    //     if (token.type == TOKEN_EOF) break;
-    // }
+    // */
+    
+    /*
+    int line  = -1;
+    for(;;){
+         Token token = scanToken();
+         if(token.line != line){
+             	printf("\nline: [%4d]\n",token.line);
+            	line = token.line;
+         }else{
+        	printf("    | ");
+         }
+         printf("line is : [%d]",token.line);
+         printf("type:[%2d] token: => %.*s\n",token.type,token.length,token.start);
+         if (token.type == TOKEN_EOF) break;
+     }
+     */
 }

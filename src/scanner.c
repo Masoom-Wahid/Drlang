@@ -214,9 +214,9 @@ static TokenType identifer_type(){
         case 'b': 
         if(scanner.current - scanner.start > 1){
             switch(scanner.start[2]){
-        	//case 'a' : return checkKeyword(3,1,"n",TOKEN_VAR);
+        	    //case 'a' : return checkKeyword(3,1,"n",TOKEN_VAR);
                 //case 's' : return checkKeyword(3,2,"ha",TOKEN_EQUAL);
-		case 's' : return checkKeyword(3,2,"ha",TOKEN_EQUAL_EQUAL);
+		        case 's' : return checkKeyword(3,2,"ha",TOKEN_EQUAL_EQUAL);
             }
             break;
         };
@@ -232,8 +232,8 @@ static TokenType identifer_type(){
         case 'w':
         if (scanner.current - scanner.start > 1) {
             switch (scanner.start[1]) {
-                case 'h': return checkKeyword(2, 3, "ile", TOKEN_WHILE);
-                case 'a' : return TOKEN_AND;
+                // case 'h': return checkKeyword(2, 3, "ile", TOKEN_WHILE);
+                case 'a' : return checkKeyword(1,1,"a",TOKEN_AND);
             }
             break;
         };
@@ -249,12 +249,14 @@ static TokenType identifer_type(){
         case 't':
             if (scanner.current - scanner.start > 1) {
                 switch (scanner.start[1]) {
-                case 'h': return checkKeyword(2, 2, "is", TOKEN_THIS);
-                // case 'r': return checkKeyword(2, 2, "ue", TOKEN_TRUE);
-                case 'a' : return checkKeyword(2,4,"qsim",TOKEN_SLASH);
-            }
+                    case 'h': return checkKeyword(2, 2, "is", TOKEN_THIS);
+                    case 'q' : return checkKeyword(2,3,"sim",TOKEN_SLASH);
+                    case 'a' : return checkKeyword(1,1,"a",TOKEN_FOR);
+                    case 'w' : return checkKeyword(2,7,"akht_ki",TOKEN_WHILE);
+		};
+            };
             break;
-        };
+        
         case 'k':
             if (scanner.current - scanner.start > 1){
                 switch (scanner.start[1]){
