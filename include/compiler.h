@@ -1,6 +1,6 @@
-#ifndef clox_compiler_h
+#ifndef drlang_compiler_h
 
-#define clox_compiler_h
+#define drlang_compiler_h
 
 #include "object.h"
 #include "vm.h"

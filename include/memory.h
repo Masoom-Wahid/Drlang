@@ -1,5 +1,5 @@
-#ifndef clox_memory_h
-#define clox_memery_h
+#ifndef drlang_memory_h
+#define drlang_memery_h
 
 #include "common.h"
 #include "object.h"

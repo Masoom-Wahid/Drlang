@@ -1,5 +1,5 @@
-#ifndef clox_object_h
-#define clox_object_h
+#ifndef drlang_object_h
+#define drlang_object_h
 
 #include "value.h"
 #include "chunk.h"

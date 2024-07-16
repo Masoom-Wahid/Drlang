@@ -1,5 +1,5 @@
-#ifndef clox_scanner_h
-#define clox_scanner_h
+#ifndef drlang_scanner_h
+#define drlang_scanner_h
 
 
 typedef enum{
