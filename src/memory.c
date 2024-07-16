@@ -1,5 +1,7 @@
 #include<stdlib.h>
 #include "memory.h"
+#include "chunk.h"
+#include "object.h"
 #include "vm.h"
 
 void* reallocate(void* pointer,size_t old_size,size_t new_size){
@@ -21,6 +23,11 @@ static void freeObject(Obj* object){
             FREE(ObjString,object);
             break;
         }
+        case OBJ_FUNCTION:
+            ObjFunction* function = (ObjFunction*)object;
+            freeChunk(&function->chunk);
+            FREE(OBJ_FUNCTION,object);
+            break;
     }
 }
 

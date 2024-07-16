@@ -3,6 +3,7 @@
 #include <string.h>
 #include "common.h"
 #include "compiler.h"
+#include "object.h"
 #include "scanner.h"
 
 
@@ -18,7 +19,7 @@ typedef struct{
 } Parser;
 
 typedef enum{
-    PREC_NONE, // NONE 
+    PREC_NONE, // NONE
     PREC_ASSIGNMENT,// =
     PREC_OR, // or
     PREC_AND, // and
@@ -44,16 +45,33 @@ typedef struct{
     int depth;
 } Local;
 
+typedef enum{
+    TYPE_FUNCTION,
+    TYPE_SCRIPT,
+} FunctionType;
+
 typedef struct{
+
+    /*
+
+        we basically treat the whole program as one implicit main function and then
+        have a call stack where the implicit main function is the 0 index meaning the program
+        starts there ,would having a main function be better ? maybae
+
+    */
+    ObjFunction* function;
+    FunctionType type;
+
     Local locals[UINT8_COUNT];
     int localCount;
     int scopeDepth;
+
 } Compiler;
 
 
 
 static void expression();
-static void parserPrecedence();
+static void parserPrecedence(Precedence precedence);
 static void unary(bool can_assign);
 static void binary(bool can_assign);
 static void grouping(bool can_assign);
@@ -178,7 +196,8 @@ static bool match(TokenType type){
 
 
 static Chunk* currentChunk(){
-    return compilingChunk;
+    // return the chunk of whatever callframe we are at right now
+    return &current->function->chunk;
 }
 
 static void emit_byte(uint8_t byte){
@@ -218,13 +237,17 @@ static void emit_return(){
 }
 
 
-static void end_compiler(){
+static ObjFunction* end_compiler(){
     emit_return();
+    ObjFunction* function = current->function;
+
+
     #ifdef DEBUG_PRINT_CODE
     if(!parser.had_error){
-        disassembleChunk(currentChunk(),"   CODE REPORT    ");
+        disassembleChunk(currentChunk(),function->name != NULL ? function->name->chars : "      <fn>    ");
     }
     #endif
+    return function;
 }
 
 static void beginScope(){
@@ -265,10 +288,22 @@ static void patchJump(int offset){
     currentChunk()->code[offset+1] = jump&0xff;
 }
 
-static void initCompiler(Compiler* compiler){
+static void initCompiler(Compiler* compiler,FunctionType type){
+    compiler->function = NULL;
+    compiler->type =type;
     compiler->localCount=0;
     compiler->scopeDepth=0;
+    compiler->function = newFunction();
     current = compiler;
+
+    Local* local = &current->locals[current->localCount++];
+    local->depth = 0;
+    // the diff between 'main' function and other function is basically
+    // that the main function's name is "" or empty string
+    // other function cant do this since lexer woudlnt allow them
+    // so basically u have an implicit main function
+    local->name.start = "";
+
 }
 
 
@@ -370,7 +405,7 @@ static void addLocal(Token name){
 static void declareVariable(){
     if(current->scopeDepth == 0) return;
     Token* name = &parser.previous;
-    // check all the variables in the curr scope 
+    // check all the variables in the curr scope
     // if their names equals then it is an error
     // else we break and add the variable
     for(int i = current->localCount - 1;i >= 0;i--){
@@ -406,7 +441,7 @@ static void and_(bool can_assign){
 
         so basically since in 'and' statements both of sides must be true
         it will take an early exit if left hand is not true
-        if it true it will pop result of left hand since it is irrelavnt and now the 
+        if it true it will pop result of left hand since it is irrelavnt and now the
         all that matters is the right side
     */
 
@@ -418,20 +453,20 @@ static void and_(bool can_assign){
 
 static void or_(bool can_assign){
     /*
-    
+
             left operand expression
-    
+
             OP_JUMP_IF_FALSE ----------
     ------- OP_JUMP                   |
     |       OP_POP <------------------|
     |       right hand expresion
     |------>continue
 
-    so basically unlike the early return of and 
+    so basically unlike the early return of and
     if the left is false we have to check the right hence the OP_JUMP_IF_FALSE
     if it wasnt false then OP_JUMP does the job
     otherwise we go through right hand expression after popping the result of left hand expression
-    
+
     */
     int elseJump = emit_jump(OP_JUMP_IF_FALSE);
     int endJump = emit_jump(OP_JUMP);
@@ -495,7 +530,7 @@ static void whileStatement(){
 
     // jump if the condition is false
     int exitJump = emit_jump(OP_JUMP_IF_FALSE);
-    // if it isnt false then the top of stack is still the result of 
+    // if it isnt false then the top of stack is still the result of
     // expression so clean that up
     emit_byte(OP_POP);
 
@@ -619,7 +654,7 @@ static void ifStatement(){
     // compile the instruction so that when running it with vm
     // the result of expression is at the top of stack
     expression();
-    
+
     consume(TOKEN_RIGHT_PAREN,"Expected ')' after condition");
 
     // get the current offset
@@ -734,7 +769,7 @@ static void binary(bool can_assign){
         case TOKEN_GREATER_EQUAL:   emit_bytes(OP_LESS,OP_NOT); break;
         case TOKEN_LESS:            emit_byte(OP_LESS); break;
         case TOKEN_LESS_EQUAL:      emit_bytes(OP_GREATER,OP_NOT); break;
-        default:            return; 
+        default:            return;
     }
 }
 static void number(bool can_assign){
@@ -761,22 +796,26 @@ static void grouping(bool can_assign){
 
 
 
-bool compile(const char* source,Chunk *chunk){
+ObjFunction* compile(const char* source,Chunk *chunk){
     initScanner(source);
     // /*
     Compiler compiler;
-    initCompiler(&compiler);
+    // TODO: fix this and use a better type
+    initCompiler(&compiler,TYPE_FUNCTION);
     compilingChunk = chunk;
     parser.had_error = false;
     parser.panic_mode = false;
     advance();
     while(!match(TOKEN_EOF)){
         declaration();
-    } 
-    end_compiler();
-    return !parser.had_error;
+    }
+
+    ObjFunction* function = end_compiler();
+    return parser.had_error ? NULL : function;
+
+
     // */
-    
+
     /*
     int line  = -1;
     for(;;){

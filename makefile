@@ -8,7 +8,7 @@ CFLAGS = -Wall -std=c11 -Iinclude
 LDFLAGS = -lm
 
 # Target executable
-TARGET = drlang 
+TARGET = drlang
 
 # Source directories
 SRCDIR = src
@@ -38,5 +38,11 @@ $(SRCDIR)/%.o: $(SRCDIR)/%.c $(HEADERS)
 clean:
 	rm -f $(OBJS)
 
+sync:
+	@find ./src -name "*.h" -exec rm {} \;
+	@find ./include -name "*.h" -exec cp {} ./src \;
+
+unsync:
+	@find ./src -name "*.h" -exec rm {} \;
 # Phony targets
-.PHONY: all clean
+.PHONY: all clean sync unsync
