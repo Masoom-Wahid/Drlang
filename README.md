@@ -22,6 +22,27 @@
     * '/' => tqsim
     * '*' => zarb
 
+
+### How To run
+##### First Clone The Repo
+```
+https://github.com/Masoom-Wahid/Drlang.git
+```
+> \[!NOTE]
+>
+> Since In The Current Commit i am in the process of adding support for functions , the stable version is not the current commit
+> To change to the stable version
+
+```
+git checkout 89bc805c25287f428fc75ab4503709d1070ea9e2 
+```
+
+##### To Compile The Lanuage You have to have 'gcc' or Gnu C Compiler installed , anything above version should work
+```
+make
+```
+
+
 ### Examples
 #### Factorial
 ```
