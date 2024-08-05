@@ -17,26 +17,49 @@
     * < => khord_az
     * '>' => kalan_az
     * print => parto
-    * + => jama
+    * '+' => jama
     * '-' => manfi
     * '/' => tqsim
     * '*' => zarb
 
 ### Examples
-#### Solving Fibonacci Numbers
+#### Factorial
 ```
+mthwl res hast 1;
+
+// n input hast
+mthwl n hast 10;
+
+ta(mthwl i hast 2;i khord_az n jama 1;i hast i jama 1){
+   res hast res zarb i;
+}
+
+parto res;
+
+
+```
+#### Fibonacci Numbers
+```
+// fibonacci impl in drlang
+
 mthwl a hast 0;
 mthwl b hast 1;
 
-// input 'n' hast
+// n is the input
 mthwl n hast 10;
 
-ta(mthwl i hast 0;i khord_az n jama 1;i hast i jama 1){
-  mthwl temp hast b;
-  b hast b jama a;
-  a hast temp;
+
+// 0 1 2 3 4 5 6  7  8  9 10
+// 0 1 1 2 3 5 8 13 21 34 55
+
+
+ta(mthwl i hast 2;i khord_az n jama 1;i hast i jama 1){
+	mthwl temp hast b;
+	b hast b jama a;
+	a hast temp;
 }
 
-
+parto "The result is :";
 parto b;
+
 ```
