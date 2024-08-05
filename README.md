@@ -15,16 +15,16 @@
     * != => nabasha
     * = => hast
     * < => khord_az
-    * > => kalan_az
+    * '>' => kalan_az
     * print => parto
     * + => jama
-    * - => manfi
-    * / => tqsim
-    * * => zarb
+    * '-' => manfi
+    * '/' => tqsim
+    * '*' => zarb
 
 ### Examples
 #### Solving Fibonacci Numbers
-`
+```
 mthwl a hast 0;
 mthwl b hast 1;
 
@@ -39,4 +39,4 @@ ta(mthwl i hast 0;i khord_az n jama 1;i hast i jama 1){
 
 
 parto b;
-`
+```
