@@ -1,0 +1,14 @@
+// In Drlang We Have '@' which reverses a string
+
+
+mthwl word hast "abc";
+mthwl a hast "hello world";
+
+
+
+mthwl rev_word hast @word;
+mthwl rev_a hast @a;
+
+
+parto rev_word basha word;
+parto rev_a basha a;
